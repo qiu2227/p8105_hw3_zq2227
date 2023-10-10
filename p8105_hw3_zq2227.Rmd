@@ -1,0 +1,247 @@
+---
+title: "p8105_hw3_zq2227.Rmd"
+author: "Zixuan Qiu"
+date: "2023-10-08"
+output: github_document
+---
+# Problem 1
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+data("instacart")
+```
+
+```{r}
+aislesnumber<-instacart |>
+  group_by(aisle) |># groups the instacart dataset by aisle.
+  summarize(number = n())|>#count the number of order in each aisle.
+  arrange(desc(number))
+```
+```{r}
+aislesnumber
+```
+#There are 134 aisles and the fresh vegetables are the most items ordered from.
+```{r}
+aisleplot<-aislesnumber|>
+  filter(number>10000)|>
+  ggplot(aes(x = reorder(aisle, number), y = number)) + #arrange the aisle by the number of items
+  geom_bar(stat = "identity")+
+  coord_flip()+ # display the aisle name horizontal
+  labs(
+    title = "Number of items ordered in each aisle ",
+    x = "Number of ordered",
+    y = "Aisle",
+    caption = "Data from the instcart")
+
+aisleplot
+ggsave("Item_number_in_aisle.png",plot =aisleplot )
+```
+
+```{r message=FALSE}
+popular_items<-instacart|>
+  filter(aisle %in% c("baking ingredients", "dog food care","packaged vegetables fruits"))|>
+  group_by(aisle,product_name)|>
+  summarize(ordered_number= n())|>
+  arrange(aisle, desc(ordered_number))|>
+  slice_head(n = 3)|>
+  knitr::kable(digits = 1)
+popular_items
+```
+
+```{r message=FALSE}
+mean_hour<-instacart|>
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream","packaged vegetables fruits"))|>
+  group_by(product_name,order_dow)|>
+  summarise(meanhour=mean(order_hour_of_day))|>
+  pivot_wider( names_from = "order_dow", values_from = "meanhour")|>
+  rename("Sunday" =`0`,"Monday" =`1`,"Tuesday" =`2`,"Wednesday" = `3`,"Thursday" =`4`,"Friday" =`5`,"Saturday" =`6`, "prdouct mean hour of the day"=product_name)|>
+  knitr::kable(digits = 1)
+mean_hour
+```
+
+# Problem 2 
+```{r}
+library(p8105.datasets)
+data("brfss_smart2010")
+```
+
+```{r}
+brffssdata=brfss_smart2010|>
+  janitor::clean_names()|>
+  filter(topic=="Overall Health")|>
+  mutate(response=factor(response,order=TRUE,levels=c("Poor", "Fair", "Good", "Very good", "Excellent")))
+str(pull(brffssdata,response))
+```
+### (a)
+```{r}
+states_2002 <-brffssdata |>
+  filter(year==2002)|>
+  group_by(locationabbr)|>
+  summarise(nobservations=n())|>
+  mutate(nobservations=nobservations/5)|>
+  filter(nobservations>=7)
+states_2002
+```
+#### CT,FL,MA,NC,NJ,PA  6 states were observed at 7 or more location in 2002.
+```{r}
+states_2010 <-brffssdata |>
+  filter(year==2010)|>
+  group_by(locationabbr)|>
+  summarise(nobservations=n())|>
+  mutate(nobservations=nobservations/5)|>
+  filter(nobservations>=7)
+states_2010
+```
+#### CA,CO,FL,MA,MD,NC,NE,NJ,NY,OH,PA,SC,TX,WA  14 states were observed at 7 or more location in 2010.
+
+### (b)
+```{r}
+exresponse<-brffssdata|>
+  filter(response=="Excellent")|>
+  group_by(year,locationabbr)|>
+  summarise(meanvalue=mean(data_value,na.rm = TRUE))|>
+  rename(state=locationabbr)|>
+  group_by(state)
+exresponse
+```
+```{r}
+exresponseplot=ggplot(exresponse,aes(x=year,y=meanvalue,group=state,color=state))+geom_line()+
+  labs(
+    title = "Excellent response mean value  over time",
+    x = "Time(year)",
+    y = "Mean(%)",
+    color = "States",
+    caption = "Data from the brfss_smart2010") 
+
+exresponseplot
+ggsave("exresponseplot.png",plot=exresponseplot)
+```
+
+### (c)
+```{r}
+nyresponse=brffssdata|>
+  filter(locationabbr=="NY")|>
+  filter(year == 2010 | year == 2006)|>
+  select(year,locationabbr,locationdesc,response,data_value)|>
+  group_by(year)|>
+  mutate(locationdesc = str_replace(locationdesc, "NY - ", ""))|>
+  mutate(locationdesc = str_replace(locationdesc, " County", ""))
+```
+
+```{r}
+newyorkplot=ggplot(nyresponse, aes(x = locationdesc, y =data_value, fill=response)) +geom_bar(stat = "identity",position = "fill") +facet_wrap(~ year)+coord_flip()
+
+newyorkplot
+ggsave("NewYork plot.png",plot=newyorkplot)
+```
+
+# Problem 3
+## Tidy participants
+```{r message=FALSE}
+participants= read_csv(file = "./nhanes_covar.csv",skip =4,n_max = 250)|>
+   janitor::clean_names()|>
+  mutate(sex,sex=ifelse(sex==1,"Male","Female"))|>
+  mutate(sex,sex=as_factor(sex))|>
+  filter(age>=21)|>
+  drop_na()|>
+  mutate(education=as.character(education))|>
+  mutate(education = recode(education,  "1" = "Low","2" = "Medium","3" = "High"))|>
+  mutate(education=factor(education, levels = c("Low", "Medium", "High"), order= TRUE))
+
+participants
+```
+
+
+
+### Gender_education_distribution
+```{r message=FALSE}
+genderdata<-participants|>
+  group_by(sex,education)|>
+  summarise(number=n())|>
+  pivot_wider( names_from = "sex", values_from = "number")|>
+  knitr::kable(digits = 1)
+
+genderdata
+```
+
+### Age distribution
+```{r}
+agedistribute<-participants|>
+  select(sex,education,age)
+ 
+```
+```{r}
+agedistributeplot<-
+  ggplot(agedistribute,aes(x=age,fill=sex))+ geom_density(alpha=0.2)+facet_grid(~ education)+viridis::scale_fill_viridis(discrete = TRUE,option="plasma")
+
+agedistributeplot
+ggsave("Age distribution.png",plot=agedistributeplot)
+```
+#### Comments agedistributeplot<-ggplot(agedistribute,aes(x=sex,y=age))+ geom_boxplot()+facet_grid(~ education)
+
+
+## Tidy accelerometer data and merge 
+```{r message=FALSE}
+acceldata = read_csv(file = "./nhanes_accel.csv")|>
+  janitor::clean_names()|>
+  drop_na()
+```
+```{r}
+mimsdata <- left_join(participants,acceldata,by= "seqn")
+```
+```{r}
+ sumactivity<-mimsdata|>
+  group_by(education,sex)|>
+  pivot_longer(min1:min1440,names_to = "time",values_to = "activity")|>
+  group_by(seqn)|>
+  summarize(totalactivity = sum(activity))
+```
+```{r}
+summimsdata<-
+  inner_join(mimsdata,sumactivity,by= "seqn")|>
+  relocate(seqn,sex,age,education,totalactivity,bmi)
+summimsdata
+```
+
+
+### Total activities (y-axis) against age (x-axis)
+```{r}
+activity_ageplot=summimsdata|>
+  group_by(education)|>
+  ggplot(aes(x=age,y=totalactivity,color=sex))+
+  geom_point(size=2.5)+
+  facet_grid(~education)+
+  geom_smooth(se = FALSE)+
+  theme(legend.position = "bottom")+
+  viridis::scale_color_viridis( name = "Gender",discrete = TRUE)+
+   ggthemes::theme_excel()+
+  labs(
+    title = "Total activities VS age",
+    x = "Age",
+    y = "Totoal MIMS values",
+    caption = "Data from the MIMS")
+
+
+activity_ageplot
+ggsave("activity_age.png",plot=activity_ageplot)
+```
+Comment on your plot.
+
+### Three-panel plot that shows the 24-hour activity time 
+```{r}
+wholedayactivity=summimsdata|>
+  group_by(education,sex)|>
+  pivot_longer(min1:min1440,names_to = "time",values_to = "activity")|>
+  group_by(seqn)
+wholedayactivity  
+```
+
+```{r message=FALSE}
+threepanelplot<-ggplot(wholedayactivity,aes(x=time,y=activity,color=sex))+geom_point()+facet_wrap(~ education, nrow =3)+geom_smooth(se = FALSE)
+
+
+threepanelplot
+ggsave("24hour_Three-panel.png",plot=threepanelplot)
+```
+
+
