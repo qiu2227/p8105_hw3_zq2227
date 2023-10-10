@@ -1,6 +1,6 @@
 ---
 title: "p8105_hw3_zq2227.Rmd"
-author: "Zixuan Qiu"
+author: "Zixuan Qiu zq2227"
 date: "2023-10-08"
 output: github_document
 ---
@@ -129,7 +129,14 @@ nyresponse=brffssdata|>
 ```
 
 ```{r}
-newyorkplot=ggplot(nyresponse, aes(x = locationdesc, y =data_value, fill=response)) +geom_bar(stat = "identity",position = "fill") +facet_wrap(~ year)+coord_flip()
+newyorkplot=ggplot(nyresponse, aes(x = locationdesc, y =data_value, fill=response)) +geom_bar(stat = "identity",position = "fill") +facet_wrap(~ year)+coord_flip()+
+labs(
+    title = "Distribution of responses among locations in NY",
+    x = "% of response(Poor to Excellent) ",
+    y = "Location",
+    fill ="Level",
+    caption = "brfss_smart2010")
+  
 
 newyorkplot
 ggsave("NewYork plot.png",plot=newyorkplot)
@@ -172,7 +179,12 @@ agedistribute<-participants|>
 ```
 ```{r}
 agedistributeplot<-
-  ggplot(agedistribute,aes(x=age,fill=sex))+ geom_density(alpha=0.2)+facet_grid(~ education)+viridis::scale_fill_viridis(discrete = TRUE,option="plasma")
+  ggplot(agedistribute,aes(x=age,fill=sex))+ geom_density(alpha=0.2)+facet_grid(~ education)+viridis::scale_fill_viridis( name = "Gender",discrete = TRUE,option="plasma")+
+labs(
+    title = "Age distributions in each education category",
+    x = "Age",
+    y = "Density",
+    caption = "MIMS")
 
 agedistributeplot
 ggsave("Age distribution.png",plot=agedistributeplot)
@@ -205,7 +217,7 @@ summimsdata
 
 
 ### Total activities (y-axis) against age (x-axis)
-```{r}
+```{r message=FALSE}
 activity_ageplot=summimsdata|>
   group_by(education)|>
   ggplot(aes(x=age,y=totalactivity,color=sex))+
@@ -237,7 +249,13 @@ wholedayactivity
 ```
 
 ```{r message=FALSE}
-threepanelplot<-ggplot(wholedayactivity,aes(x=time,y=activity,color=sex))+geom_point()+facet_wrap(~ education, nrow =3)+geom_smooth(se = FALSE)
+threepanelplot<-ggplot(wholedayactivity,aes(x=time,y=activity,color=sex))+geom_point()+facet_wrap(~ education, nrow =3)+geom_smooth(se = FALSE)+
+  labs(
+    title = "24-hour activity",
+    x = "Time",
+    y = "Activity",
+    color = "Gender",
+    caption = "MIMS")
 
 
 threepanelplot
