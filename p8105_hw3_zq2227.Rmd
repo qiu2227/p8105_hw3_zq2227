@@ -234,7 +234,7 @@ activity_ageplot=summimsdata|>
     title = "Total activities VS Age",
     x = "Age",
     y = "Totoal MIMS values",
-    caption = "Data from the MIMS")
+    caption = "Data from MIMS")
 
 
 activity_ageplot
